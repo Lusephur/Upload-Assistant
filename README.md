@@ -37,7 +37,9 @@ A simple tool to take the work out of uploading.
    - Edit `config.py` to use your information (more detailed information in the [wiki](https://github.com/L4GSP1KE/Upload-Assistant/wiki))
       - tmdb_api (v3) key can be obtained from https://developers.themoviedb.org/3/getting-started/introduction
       - image host api keys can be obtained from their respective sites
-   - Install necessary python modules `pip3 install --user -U -r requirements.txt`
+   - Set up Virtualenvironment `python3 -m venv --prompt 3.11 env`
+   - Prime the env `source env/bin/activate.fish`
+   - Install necessary python modules `python3 -m pip install -r requirements.txt`
      
    
 
