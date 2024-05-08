@@ -7,6 +7,7 @@ import distutils.util
 import os
 import re
 import platform
+from datetime import datetime
 
 from src.trackers.COMMON import COMMON
 from src.console import console
@@ -24,46 +25,65 @@ class LDU():
         self.source_flag = 'LDU'
         self.upload_url = 'https://theldu.net/api/torrents/upload'
         self.search_url = 'https://theldu.net/api/torrents/filter'
-        self.signature = f"\n[center][size=6][url=https://github.com/z-ink/Upload-Assistant]CvT's Upload-Assistant v. 0.2[/url][/size][/center]"
+        self.signature = f"\n[center][size=6][url=https://github.com/z-ink/Upload-Assistant]Upload Assistant(CvT Mod v0.3)[/url][/size][/center]"
+        self.anon_signature = f"\n[center][size=6]we are anonymous[/size][/center]"
         self.banned_groups = [""]
         pass
-
+    
     async def get_cat_id(self, category_name, genres, keywords, service, edition, meta):
+        adult = meta.get('adult', False)
+        release_date = meta.get('full_date', '')
+        if isinstance(release_date, str):
+            release_date = datetime.strptime(release_date, '%Y-%m-%d')
+        year = meta.get('year','')
         tag = self.get_language_tag(meta)
-        tags = tag.split(']')
-        tags = [t[1:] for t in tags if t]
+        if tag:
+            tags = tag.split(']')
+            tags = [t[1:] for t in tags if t]
         category_id = {
-            'MOVIE': '1',
-            'TV': '2',
+            'MOVIE': '1', 
+            'TV': '2', 
             'Anime' : '8',
-            }.get(category_name, '0')
+            }.get(category_name, '0') 
         if category_name == 'MOVIE':
-            if not tags[0].isalpha():
+            if adult == True and 'hentai' or 'animation'in map(str.strip,keywords.lower().split(',')):
+                category_id = '10'
+            elif adult == True:
+                category_id = '6'
+            elif tag and not tags[0].isalpha():
                 category_id = '27'
-            elif tags[0] != 'ENG' and len(tags) > 1 and 'ENG' in tags[1]:
+            elif tag and 'ENG' not in ''.join(tags):
                 category_id = '22'
             elif '3D' in edition:
                 category_id = '21'
-            elif 'silent film' in map(str.strip, keywords.lower().split(',')):
+            elif release_date != '' and release_date < datetime(1927, 10, 1):
                 category_id = '18'
+            elif year != '' and year <= 1926:
+                category_id = '18'     
+            elif 'silent film' in map(str.strip, keywords.lower().split(',')):
+                category_id = '18'      
             elif 'holiday' in map(str.strip, keywords.lower().split(',')):
-                category_id = '24'
+                category_id = '24'     
             elif 'musical' in map(str.strip, keywords.lower().split(',')):
-                category_id = '25'
+                category_id = '25'                
             elif 'documentary' in map(str.strip, genres.lower().split(',')):
                 category_id = '17'
             elif 'stand-up' in map(str.strip, keywords.lower().split(',')):
                 category_id = '20'
             elif 'short film' in map(str.strip, keywords.lower().split(',')):
-                category_id = '19'
+                category_id = '19'                 
             else:
-                category_id = '1'
+                category_id = '1'                                                            
         elif category_name == 'TV':
-            if not tags[0].isalpha():
+            if adult == True and 'hentai' or 'animation'in map(str.strip,keywords.lower().split(',')):
+                category_id = '10'
+            elif adult == True:
+                category_id = '6'            
+            elif tag and not tags[0].isalpha():
                 category_id = '31'
-            elif tags[0] != 'ENG' and len(tags) > 1 and 'ENG' in tags[1]:
+            elif tag and 'ENG' not in ''.join(tags):
                 category_id = '29'
-            elif category_name == 'TV' and 'anime' in map(str.strip,keywords.lower().split(',')):
+            elif category_name == 'TV' and 'anime' in map(str.strip,keywords.lower().split(',')):    
                 category_id = '9'
             else:
                 category_id = '2'
@@ -71,10 +91,10 @@ class LDU():
 
     async def get_type_id(self, type):
         type_id = {
-            'DISC': '1',
+            'DISC': '1', 
             'REMUX': '2',
-            'WEBDL': '4',
-            'WEBRIP': '5',
+            'WEBDL': '4', 
+            'WEBRIP': '5', 
             'HDTV': '6',
             'ENCODE': '3'
             }.get(type, '0')
@@ -82,16 +102,16 @@ class LDU():
 
     async def get_res_id(self, resolution):
         resolution_id = {
-            '8640p':'10',
-            '4320p': '1',
-            '2160p': '2',
+            '8640p':'10', 
+            '4320p': '1', 
+            '2160p': '2', 
             '1440p' : '3',
             '1080p': '3',
-            '1080i':'4',
-            '720p': '5',
-            '576p': '6',
+            '1080i':'4', 
+            '720p': '5',  
+            '576p': '6', 
             '576i': '7',
-            '480p': '8',
+            '480p': '8', 
             '480i': '9'
             }.get(resolution, '10')
         return resolution_id
@@ -106,13 +126,13 @@ class LDU():
         cat_id = await self.get_cat_id(meta['category'], meta.get('genres', ''), meta.get('keywords', ''), meta.get('service', ''), meta.get('edition', ''), meta)
         type_id = await self.get_type_id(meta['type'])
         resolution_id = await self.get_res_id(meta['resolution'])
-        await common.unit3d_edit_desc(meta, self.tracker, self.signature)
+        await common.unit3d_edit_desc(meta, self.tracker, self.signature, self.anon_signature)
         region_id = await common.unit3d_region_ids(meta.get('region'))
         distributor_id = await common.unit3d_distributor_ids(meta.get('distributor'))
-        if meta['anon'] == 0 and bool(distutils.util.strtobool(str(self.config['TRACKERS'][self.tracker].get('anon', "False")))) == False:
-            anon = 0
-        else:
+        if meta['anon'] != 0 or self.config['TRACKERS'][self.tracker].get('anon', "False"):
             anon = 1
+        else:
+            anon = 0
 
         if meta['bdinfo'] != None:
             mi_dump = None
@@ -121,29 +141,14 @@ class LDU():
             mi_dump = open(f"{meta['base_dir']}/tmp/{meta['uuid']}/MEDIAINFO.txt", 'r', encoding='utf-8').read()
             bd_dump = None
 
-        def add_trailer(): #Adding Trailer
-            key = meta.get("youtube", "")
-            if key:
-                with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{self.tracker}]DESCRIPTION.txt", 'r') as file:
-                    lines = file.readlines()
-                for i, line in enumerate(lines):
-                    if '[/center]' in line:
-                        lines[i] = line.replace('[/center]', f'[/center]\n[center][youtube]{key}[/youtube][/center]')
-                        break
-                with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{self.tracker}]DESCRIPTION.txt", 'w') as file:
-                    file.writelines(lines)
-            with open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{self.tracker}]DESCRIPTION.txt", 'r') as file:
-                content = file.read()
-            return content
-
-        desc = add_trailer()
+        desc = open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{self.tracker}]DESCRIPTION.txt", 'r').read()
         open_torrent = open(f"{meta['base_dir']}/tmp/{meta['uuid']}/[{self.tracker}]{meta['clean_name']}.torrent", 'rb')
         files = {'torrent': open_torrent}
         data = {
             'name' : await self.get_name(meta),
             'description' : desc,
             'mediainfo' : mi_dump,
-            'bdinfo' : bd_dump,
+            'bdinfo' : bd_dump, 
             'category_id' : cat_id,
             'type_id' : type_id,
             'resolution_id' : resolution_id,
@@ -167,7 +172,7 @@ class LDU():
         if self.config['TRACKERS'][self.tracker].get('internal', False) == True:
             if meta['tag'] != "" and (meta['tag'][1:] in self.config['TRACKERS'][self.tracker].get('internal_groups', [])):
                 data['internal'] = 1
-
+                
         if region_id != 0:
             data['region_id'] = region_id
         if distributor_id != 0:
@@ -176,19 +181,19 @@ class LDU():
             data['season_number'] = meta.get('season_int', '0')
             data['episode_number'] = meta.get('episode_int', '0')
         headers = {
-            'User-Agent': f'Upload Assistant/v. CvT 0.2 ({platform.system()} {platform.release()})'
+            'User-Agent': f'Upload Assistant/v. CvT 0.3 ({platform.system()} {platform.release()})'
         }
         params = {
             'api_token' : self.config['TRACKERS'][self.tracker]['api_key'].strip()
         }
-
+        
         if meta['debug'] == False:
             response = requests.post(url=self.upload_url, files=files, data=data, headers=headers, params=params)
             try:
                 console.print(response.json())
             except:
                 console.print("It may have uploaded, go check")
-                return
+                return 
         else:
             console.print(f"[cyan]Request Data:")
             console.print(data)
@@ -221,16 +226,16 @@ class LDU():
                         sub_lang_tag = f"[Subs {sub_lang[0].upper()}]"
 
 
-            return lang_tag+sub_lang_tag
+        return lang_tag+sub_lang_tag
 
 
     def get_basename(self, meta):
         path = next(iter(meta['filelist']), meta['path'])
         return os.path.basename(path)
-
+   
     async def get_name(self, meta):
         # Have to agree with whoever made HUNO's script
-        # was easier to rebuild name with Prep.get_name() and mofidy
+        # was easier to rebuild name with Prep.get_name() and mofidy 
         # than to attempt to edit the name thereafter - thanks for the tip
 
         basename = self.get_basename(meta)
@@ -291,20 +296,20 @@ class LDU():
                 if meta['is_disc'] == 'BDMV':
                     name = f"{title} [{alt_title}] ({year}) {three_d} [{edition} {repack} {resolution} {region} {uhd} {source} {hdr} {video_codec} {audio}{tag}] {lang_tag}"
                     potential_missing = ['edition', 'region', 'distributor']
-                elif meta['is_disc'] == 'DVD':
+                elif meta['is_disc'] == 'DVD': 
                     name = f"{title} {alt_title} ({year}) [{edition} {repack} {source} {dvd_size} {audio}{tag}] {lang_tag}"
                     potential_missing = ['edition', 'distributor']
                 elif meta['is_disc'] == 'HDDVD':
                     name = f"{title} {alt_title} ({year}) [{edition} {repack} {resolution} {source} {video_codec}] {audio}{tag}] {lang_tag}"
                     potential_missing = ['edition', 'region', 'distributor']
             elif type == "REMUX" and source in ("BluRay", "HDDVD"): #BluRay/HDDVD Remux
-                name = f"{title} {alt_title} ({year}) {three_d} [{edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}{tag}] {lang_tag}"
+                name = f"{title} {alt_title} ({year}) {three_d} [{edition} {repack} {resolution} {uhd} {source} REMUX {hdr} {video_codec} {audio}{tag}] {lang_tag}" 
                 potential_missing = ['edition', 'description']
             elif type == "REMUX" and source in ("PAL DVD", "NTSC DVD", "DVD"): #DVD Remux
-                name = f"{title} {alt_title} ({year}) [{edition} {repack} {source} REMUX  {audio}{tag}] {lang_tag}"
+                name = f"{title} {alt_title} ({year}) [{edition} {repack} {source} REMUX  {audio}{tag}] {lang_tag}" 
                 potential_missing = ['edition', 'description']
             elif type == "ENCODE": #Encode
-                name = f"{title} {alt_title} ({year}) [{edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}{tag}] {lang_tag}"
+                name = f"{title} {alt_title} ({year}) [{edition} {repack} {resolution} {uhd} {source} {audio} {hdr} {video_encode}{tag}] {lang_tag}"  
                 potential_missing = ['edition', 'description']
             elif type == "WEBDL": #WEB-DL
                 name = f"{title} {alt_title} ({year}) [{edition} {repack} {resolution} {uhd} {service} WEB-DL {audio} {hdr} {video_encode}{tag}] {lang_tag}"
@@ -350,9 +355,9 @@ class LDU():
         sq_bracket = next((i for i, part in enumerate(parts[bracket_index+1:]) if part.strip()), None)
         if sq_bracket is not None:
             name = ' '.join(parts[:bracket_index+1]) + ' '.join(parts[bracket_index+1:])
-
+        
         return ' '.join(name.split())
-
+    
 
     async def search_existing(self, meta):
         dupes = []
