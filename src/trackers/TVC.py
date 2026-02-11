@@ -137,7 +137,7 @@ class TVC:
 
         # Logo
         if meta.get("logo"):
-            logo_size = self.config['DEFAULT'].get('logo_size', DEFAULT_LOGO_SIZE)
+            logo_size = self.config['DEFAULT'].get('logo_size', self.DEFAULT_LOGO_SIZE)
             parts.append(f"[img={logo_size}]{meta['logo']}[/img]\n")
 
         # Title and overview
@@ -171,7 +171,7 @@ class TVC:
 
         # Logo
         if meta.get("logo"):
-            logo_size = self.config['DEFAULT'].get('logo_size', DEFAULT_LOGO_SIZE)
+            logo_size = self.config['DEFAULT'].get('logo_size', self.DEFAULT_LOGO_SIZE)
             parts.append(f"[img={logo_size}]{meta['logo']}[/img]\n")
 
         # Series info
@@ -208,7 +208,7 @@ class TVC:
 
         # Logo
         if meta.get("logo"):
-            logo_size = self.config['DEFAULT'].get('logo_size', DEFAULT_LOGO_SIZE)
+            logo_size = self.config['DEFAULT'].get('logo_size', self.DEFAULT_LOGO_SIZE)
             parts.append(f"[img={logo_size}]{meta['logo']}[/img]\n")
 
         # Episode title
@@ -307,7 +307,7 @@ class TVC:
         screens_count = int(meta.get('screens', 0) or 0)
         required_count = self.config['TRACKERS'][self.tracker].get(
             'image_count',
-            MIN_SCREENSHOTS_REQUIRED
+            self.MIN_SCREENSHOTS_REQUIRED
         )
 
         if not image_list or screens_count < required_count:
@@ -319,7 +319,7 @@ class TVC:
             web_url = img['web_url']
             img_url = img['img_url']
             parts.append(
-                f"[url={web_url}][img={SCREENSHOT_THUMB_SIZE}]{img_url}[/img][/url]"
+                f"[url={web_url}][img={self.SCREENSHOT_THUMB_SIZE}]{img_url}[/img][/url]"
             )
 
         return "".join(parts)
@@ -337,7 +337,7 @@ class TVC:
         if not comparison:
             desc = bbcode.convert_comparison_to_collapse(
                 desc,
-                COMPARISON_COLLAPSE_THRESHOLD
+                self.COMPARISON_COLLAPSE_THRESHOLD
             )
 
         return desc
